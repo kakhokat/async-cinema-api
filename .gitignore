@@ -1,34 +1,65 @@
-# Python
+# Byte-compiled / optimized
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.db
-*.sqlite3
+*.py[cod]
+*$py.class
 
-# Virtual environments
-.env
-.venv
+# Virtualenvs
+.venv/
 venv/
+env/
 ENV/
 
-# IDE
+# Pipenv
+Pipfile.lock
+
+# Poetry
+.poetry/
+
+# pyenv
+.python-version
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# IDEs
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+
+# Docker
+*.env
+.env
+docker-compose.override.yml
+# optionally ignore docker images and volumes metadata
+**/docker-compose/local.override.yml
 
 # OS
 .DS_Store
 Thumbs.db
 
 # Logs
+logs/
 *.log
 
-# Byte-compiled / cache
-*.egg-info/
-dist/
-build/
-
-# Tests
-.coverage
-htmlcov/
-.pytest_cache/
+# Secrets
+secrets.*
