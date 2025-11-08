@@ -1,38 +1,124 @@
-# 🎬 Async Cinema API
+🎬 Async Cinema API (Sprint 1)
 
-# Async Cinema API (Sprint 1)
+Асинхронный API для онлайн-кинотеатра: FastAPI + Elasticsearch + Redis.
+Этот репозиторий — реализация 1 спринта индивидуального задания (только фильмы).
 
-**Кратко:** Асинхронный API для онлайн-кинотеатра на FastAPI + Elasticsearch + Redis.  
-Этот репозиторий содержит код первого спринта (каркас API, докер, модели, базовая логика).
+📦 Состав репозитория
 
-## Содержание
-- `src/` — исходники приложения
-- `.github/workflows/ci.yml` — CI (линт, тесты)
-- `docker-compose.yml` — локальное окружение (ES, Redis, API)
-- `requirements.txt`# Async Cinema API (Sprint 1)
+src/ — исходники приложения
 
-**Кратко:** Асинхронный API для онлайн-кинотеатра на FastAPI + Elasticsearch + Redis.  
-Этот репозиторий содержит код первого спринта (каркас API, докер, модели, базовая логика).
+tests/ — автотесты (pytest)
 
-## Содержание
-- `src/` — исходники приложения
-- `.github/workflows/ci.yml` — CI (линт, тесты)
-- `docker-compose.yml` — локальное окружение (ES, Redis, API)
-- `requirements.txt`
+data/ — mapping и тестовые данные для Elasticsearch
 
-## 📄 Техническое задание
-[Ссылка на ТЗ](https://github.com/kakhokat/Async_API_sprint_1)  
+scripts/es_load.py — скрипт загрузки тестовых данных в ES
 
-## 🚀 Установка и запуск
-```bash
-git clone git@github.com:kakhokat/async-cinema-api.git
+docker-compose.yml — локальное окружение (API, Elasticsearch, Redis)
+
+Dockerfile — образ приложения
+
+requirements.txt, requirements-dev.txt — зависимости (runtime/dev)
+
+.env.example — пример переменных окружения
+
+.github/workflows/ci.yml — CI
+
+📄 Техническое задание
+
+Основные эндпоинты для фильмов по ТЗ реализованы:
+
+Список популярных фильмов с сортировкой, пагинацией и фильтром по жанру
+GET /api/v1/films?sort=-imdb_rating&page_size=&page_number=&genre=
+
+Поиск по фильмам
+GET /api/v1/films/search?query=... и GET /api/v1/films/search/?query=...
+
+Полная карточка фильма
+GET /api/v1/films/{uuid}
+
+Ответы кэшируются в Redis:
+
+детальная карточка — по id, TTL 5 минут;
+
+списки и поиск — по комбинации параметров запроса, TTL 5 минут.
+
+Документация (Swagger): http://localhost:8000/api/openapi
+
+Стек поднимается через Docker.
+
+Персоны и жанры в рамках индивидуального задания опущены (по условию спринта).
+
+⚙️ Требования
+
+Docker / Docker Compose
+
+Python 3.11 (только если хочешь запускать scripts/es_load.py с хоста)
+
+🚀 Быстрый старт (Docker)
+
+Ниже команды сведены в один сценарий «поднимай и проверяй через Swagger и автотесты».
+
+Клонируй репозиторий и перейди в него:
+
+git clone https://github.com/kakhokat/async-cinema-api.git
 cd async-cinema-api
 
-Скопировать переменные окружения
+
+(опционально) Создай .env:
+
 cp .env.example .env
 
-Запустить через Docker Compose
-docker-compose up --build
 
-Открыть API
-http://localhost:8000/docs
+Подними стек:
+
+docker compose up -d --build
+
+
+Залей тестовые данные в ES (любой способ на выбор):
+
+A. Через Python-скрипт (с хоста):
+
+pip install -r requirements.txt  # если ещё не устанавливали requests – см. ниже вариант B
+pip install requests
+python scripts/es_load.py
+
+
+B. Через curl (без Python):
+
+# удалить индекс, создать мэппинг, bulk-загрузка, refresh
+curl -X DELETE http://localhost:9200/movies
+curl -X PUT http://localhost:9200/movies -H "Content-Type: application/json" -d @data/movies.mapping.json
+curl -X POST http://localhost:9200/_bulk -H "Content-Type: application/x-ndjson" --data-binary @data/movies.bulk.ndjson
+curl -X POST http://localhost:9200/movies/_refresh
+
+
+Открой Swagger:
+
+http://localhost:8000/api/openapi
+
+
+Проверь ручки в Swagger (или curl):
+
+Список (популярные):
+
+GET http://localhost:8000/api/v1/films?sort=-imdb_rating&page_size=50&page_number=1
+
+
+Поиск:
+
+GET http://localhost:8000/api/v1/films/search?query=star&page_size=50&page_number=1
+GET http://localhost:8000/api/v1/films/search/?query=star&page_size=50&page_number=1
+
+
+Детальная:
+
+GET http://localhost:8000/api/v1/films/b31592e5-673d-46dc-a561-9446438aea0f
+
+
+⚠️ Важно: Swagger у приложения на пути /api/openapi, а не /docs.
+
+🧪 Автотесты (pytest) через Docker
+
+Запустить тесты внутри контейнера приложения:
+
+docker compose exec api sh -lc "pip install -r requirements-dev.txt && pytest -q --maxfail=1 --disable-warnings"
