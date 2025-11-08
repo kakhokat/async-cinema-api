@@ -76,20 +76,21 @@ docker compose up -d --build
 
 Залей тестовые данные в ES (любой способ на выбор):
 
-A. Через Python-скрипт (с хоста):
+# 1) создать и активировать виртуальное окружение
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
 
-pip install -r requirements.txt  # если ещё не устанавливали requests – см. ниже вариант B
+# 2) поставить зависимости для скрипта
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 pip install requests
+
+# 3) загрузить тестовые данные в Elasticsearch
 python scripts/es_load.py
-
-
-B. Через curl (без Python):
-
-# удалить индекс, создать мэппинг, bulk-загрузка, refresh
-curl -X DELETE http://localhost:9200/movies
-curl -X PUT http://localhost:9200/movies -H "Content-Type: application/json" -d @data/movies.mapping.json
-curl -X POST http://localhost:9200/_bulk -H "Content-Type: application/x-ndjson" --data-binary @data/movies.bulk.ndjson
-curl -X POST http://localhost:9200/movies/_refresh
+# По умолчанию скрипт стучится в http://localhost:9200 (проксируется контейнером elasticsearch)
 
 
 Открой Swagger:
