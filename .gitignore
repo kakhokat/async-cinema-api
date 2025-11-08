@@ -15,6 +15,9 @@ venv/
 .env
 docker-compose.override.yml
 
+
+.venv
+venv
 collect.py
 collect/
 .coverage
