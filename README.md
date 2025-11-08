@@ -122,4 +122,4 @@ GET http://localhost:8000/api/v1/films/b31592e5-673d-46dc-a561-9446438aea0f
 
 Запустить тесты внутри контейнера приложения:
 
-docker compose exec api sh -lc "pip install -r requirements-dev.txt && pytest -q --maxfail=1 --disable-warnings"
+docker compose exec api sh -lc "pytest -q --maxfail=1 --disable-warnings"

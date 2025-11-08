@@ -16,6 +16,15 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
+# dev-зависимости тоже внутрь
+COPY requirements-dev.txt ./requirements-dev.txt
+RUN pip install -r requirements-dev.txt
+
+# положим тесты и конфиги pytest в образ
+COPY tests ./tests
+COPY pytest.ini ./pytest.ini
+COPY pyproject.toml ./pyproject.toml
+
 # copy source
 COPY src ./src
 COPY .env.example ./.env.example
