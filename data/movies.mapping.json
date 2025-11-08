@@ -1,0 +1,11 @@
+{
+  "mappings": {
+    "properties": {
+      "id":          { "type": "keyword" },
+      "title":       { "type": "text" },
+      "description": { "type": "text" },
+      "imdb_rating": { "type": "float" },
+      "genre":       { "type": "keyword" }
+    }
+  }
+}
