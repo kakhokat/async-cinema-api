@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from fastapi import Depends
@@ -7,15 +7,17 @@ from redis.asyncio import Redis
 
 from db.elastic import get_elastic
 from db.redis import get_redis
-from models.film import Film, FilmListItem, FilmDetail
+from models.film import Film, FilmDetail, FilmListItem
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 INDEX = "movies"
+
 
 def _cache_key(prefix: str, params: Dict[str, Any]) -> str:
     # стабильный ключ кеша по набору параметров
     items = sorted((k, str(v)) for k, v in params.items() if v is not None)
     return prefix + ":" + "|".join(f"{k}={v}" for k, v in items)
+
 
 class FilmService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
@@ -39,11 +41,18 @@ class FilmService:
         page_size: int,
         genre: Optional[str] = None,
     ) -> List[FilmListItem]:
-        params = {"sort": sort, "page_number": page_number, "page_size": page_size, "genre": genre}
+        params = {
+            "sort": sort,
+            "page_number": page_number,
+            "page_size": page_size,
+            "genre": genre,
+        }
         key = _cache_key("films:list", params)
         cached = await self.redis.get(key)
         if cached:
-            return [FilmListItem.parse_raw(row) for row in eval(cached.decode("utf-8"))]  # simple cached rows
+            return [
+                FilmListItem.parse_raw(row) for row in eval(cached.decode("utf-8"))
+            ]  # simple cached rows
 
         query, es_sort = self._build_list_query(sort=sort, genre=genre)
         from_ = (page_number - 1) * page_size
@@ -58,9 +67,19 @@ class FilmService:
         rows: List[FilmListItem] = []
         for hit in resp["hits"]["hits"]:
             src = hit["_source"]
-            rows.append(FilmListItem(uuid=src.get("id") or hit["_id"], title=src.get("title", ""), imdb_rating=src.get("imdb_rating")))
+            rows.append(
+                FilmListItem(
+                    uuid=src.get("id") or hit["_id"],
+                    title=src.get("title", ""),
+                    imdb_rating=src.get("imdb_rating"),
+                )
+            )
         # cache as list of json strings
-        await self.redis.set(key, str([r.json() for r in rows]).encode("utf-8"), FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(
+            key,
+            str([r.json() for r in rows]).encode("utf-8"),
+            FILM_CACHE_EXPIRE_IN_SECONDS,
+        )
         return rows
 
     async def search_films(
@@ -80,7 +99,7 @@ class FilmService:
             "multi_match": {
                 "query": query_str,
                 "fields": ["title^3", "description"],
-                "fuzziness": "AUTO"
+                "fuzziness": "AUTO",
             }
         }
         resp = await self.elastic.search(
@@ -94,8 +113,18 @@ class FilmService:
         rows: List[FilmListItem] = []
         for hit in resp["hits"]["hits"]:
             src = hit["_source"]
-            rows.append(FilmListItem(uuid=src.get("id") or hit["_id"], title=src.get("title", ""), imdb_rating=src.get("imdb_rating")))
-        await self.redis.set(key, str([r.json() for r in rows]).encode("utf-8"), FILM_CACHE_EXPIRE_IN_SECONDS)
+            rows.append(
+                FilmListItem(
+                    uuid=src.get("id") or hit["_id"],
+                    title=src.get("title", ""),
+                    imdb_rating=src.get("imdb_rating"),
+                )
+            )
+        await self.redis.set(
+            key,
+            str([r.json() for r in rows]).encode("utf-8"),
+            FILM_CACHE_EXPIRE_IN_SECONDS,
+        )
         return rows
 
     # ---------- internals ----------
@@ -118,7 +147,9 @@ class FilmService:
     async def _put_film_to_cache(self, film: Film):
         await self.redis.set(film.id, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
-    def _build_list_query(self, sort: Optional[str], genre: Optional[str]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _build_list_query(
+        self, sort: Optional[str], genre: Optional[str]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         es_sort: List[Dict[str, Any]] = []
         if sort:
             order = "desc" if sort.startswith("-") else "asc"
@@ -132,7 +163,10 @@ class FilmService:
             must.append({"terms": {"genre": [genre]}})
 
         query: Dict[str, Any] = {"bool": {"must": must}} if must else {"match_all": {}}
-        return query, es_sort or [{"imdb_rating": {"order": "desc", "missing": "_last"}}]
+        return query, es_sort or [
+            {"imdb_rating": {"order": "desc", "missing": "_last"}}
+        ]
+
 
 @lru_cache()
 def get_film_service(

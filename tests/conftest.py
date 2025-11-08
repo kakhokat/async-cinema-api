@@ -1,12 +1,13 @@
-import typing as t
 import copy
+import typing as t
+
 import pytest
 from fastapi.testclient import TestClient
 
+from services.film import get_film_service as get_film_service_pkg
 from src.main import app
 from src.models.film import Film, FilmListItem
 from src.services.film import get_film_service as get_film_service_src
-from services.film import get_film_service as get_film_service_pkg
 
 
 @pytest.fixture(scope="session")
@@ -17,7 +18,10 @@ def sample_movies() -> t.List[dict]:
             "title": "Lunar: The Silver Star",
             "description": "From the village of Burg...",
             "imdb_rating": 9.2,
-            "genre": ["6f822a92-7b51-4753-8d00-ecfedf98a937", "00f74939-18b1-42e4-b541-b52f667d50d9"],
+            "genre": [
+                "6f822a92-7b51-4753-8d00-ecfedf98a937",
+                "00f74939-18b1-42e4-b541-b52f667d50d9",
+            ],
         },
         {
             "id": "27fc3dc6-2656-43cb-8e56-d0dfb75ea0b2",
@@ -100,7 +104,10 @@ class InMemoryFilmService:
         items = items[start:end]
 
         # возвращаем то, что ожидает API: FilmListItem
-        return [FilmListItem(uuid=f.id, title=f.title, imdb_rating=f.imdb_rating) for f in items]
+        return [
+            FilmListItem(uuid=f.id, title=f.title, imdb_rating=f.imdb_rating)
+            for f in items
+        ]
 
     async def search_films(
         self,
@@ -116,13 +123,18 @@ class InMemoryFilmService:
         items = [f for f in self._films if match(f)]
 
         # приближённая релевантность: по рейтингу по убыванию, None — в конец
-        items = sorted(items, key=lambda f: (f.imdb_rating is None, -(f.imdb_rating or 0)))
+        items = sorted(
+            items, key=lambda f: (f.imdb_rating is None, -(f.imdb_rating or 0))
+        )
 
         start = (page_number - 1) * page_size
         end = start + page_size
         items = items[start:end]
 
-        return [FilmListItem(uuid=f.id, title=f.title, imdb_rating=f.imdb_rating) for f in items]
+        return [
+            FilmListItem(uuid=f.id, title=f.title, imdb_rating=f.imdb_rating)
+            for f in items
+        ]
 
 
 # ---------- ПОДМЕНА ЗАВИСИМОСТЕЙ ----------

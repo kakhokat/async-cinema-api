@@ -1,10 +1,12 @@
 import json
 import sys
 import time
+
 import requests
 
 ES = "http://localhost:9200"
 INDEX = "movies"
+
 
 def main():
     # create index with mapping
@@ -22,13 +24,16 @@ def main():
     print("Index created:", r.json())
 
     with open(bulk_path, "rb") as f:
-        r = requests.post(f"{ES}/_bulk", data=f, headers={"Content-Type": "application/x-ndjson"})
+        r = requests.post(
+            f"{ES}/_bulk", data=f, headers={"Content-Type": "application/x-ndjson"}
+        )
     r.raise_for_status()
     print("Bulk loaded")
 
     # refresh
     requests.post(f"{ES}/{INDEX}/_refresh")
     print("Refreshed")
+
 
 if __name__ == "__main__":
     main()

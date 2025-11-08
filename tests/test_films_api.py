@@ -23,14 +23,15 @@ def test_films_list_default_sort(client):
     data = resp.json()
     # сортировка по умолчанию: -imdb_rating
     titles = [x["title"] for x in data]
-    assert titles[0] == "Lunar: The Silver Star"   # 9.2
-    assert titles[1] == "Wishes on a Falling Star" # 8.5
-    assert titles[2] == "Silent Moon"              # 7.0
+    assert titles[0] == "Lunar: The Silver Star"  # 9.2
+    assert titles[1] == "Wishes on a Falling Star"  # 8.5
+    assert titles[2] == "Silent Moon"  # 7.0
 
 
 def test_films_list_genre_filter(client):
     # жанр: 6f82... — есть у Lunar и Silent Moon
-    resp = client.get("/api/v1/films?genre=6f822a92-7b51-4753-8d00-ecfedf98a937&page_size=10&page_number=1")
+    genre = "6f822a92-7b51-4753-8d00-ecfedf98a937"
+    resp = client.get(f"/api/v1/films?genre=&{genre}page_size=10&page_number=1")
     assert resp.status_code == HTTPStatus.OK
     titles = [x["title"] for x in resp.json()]
     assert titles == ["Lunar: The Silver Star", "Silent Moon"]
