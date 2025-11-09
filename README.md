@@ -77,25 +77,11 @@ docker compose up -d --build
 Залей тестовые данные в ES:
 
 # 1) создать и активировать виртуальное окружение
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# 2) поставить зависимости для скрипта
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install requests
-
-# 3) загрузить тестовые данные в Elasticsearch
-python scripts/es_load.py
-# По умолчанию скрипт стучится в http://localhost:9200 (проксируется контейнером elasticsearch)
-
+docker compose exec -e ELASTIC_URL=http://elasticsearch:9200 -e ES_INDEX=movies api python scripts/es_load.py
 
 Открой Swagger:
 
-http://localhost:8000/api/openapi
+http://localhost/api/openapi
 
 
 Проверь ручки в Swagger (или curl):
