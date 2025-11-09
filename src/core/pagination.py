@@ -1,8 +1,10 @@
 from fastapi import Query
 from pydantic import BaseModel, field_validator
 
-DEFAULT_PAGE_SIZE = 1
-MAX_PAGE_SIZE = 1000
+from core.settings import settings
+
+DEFAULT_PAGE_SIZE = settings.PAGE_SIZE_DEFAULT
+MAX_PAGE_SIZE = settings.PAGE_SIZE_MAX
 
 
 class PaginationParams(BaseModel):

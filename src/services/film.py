@@ -13,7 +13,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.film import Film, FilmListItem
 
-FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
+FILM_CACHE_EXPIRE_IN_SECONDS = settings.FILM_CACHE_TTL
 INDEX = settings.ES_INDEX
 
 
@@ -37,8 +37,7 @@ class FilmService:
         try:
             film = await self._get_film_from_elastic(film_id)
         except TransportError as exc:
-            # отдадим 503 — обработчик в main.py тоже перехватит,
-            # но здесь можно явно маппить на HTTPException
+            # ES недоступен — 503
             raise HTTPException(
                 status_code=503, detail="Elasticsearch is unavailable"
             ) from exc

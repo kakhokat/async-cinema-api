@@ -38,19 +38,29 @@ dictConfig(LOGGING)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    docs_url="/api/openapi",
-    openapi_url="/api/openapi.json",
+    docs_url=settings.DOCS_URL,
+    openapi_url=settings.OPENAPI_URL,
     default_response_class=ORJSONResponse,
     lifespan=lifespan,
 )
 
 # доверяем X-Forwarded-* от nginx
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+trusted = (
+    ["*"]
+    if settings.PROXY_TRUSTED_HOSTS.strip() == "*"
+    else [h.strip() for h in settings.PROXY_TRUSTED_HOSTS.split(",") if h.strip()]
+)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=trusted)
 
-# CORS (разрешаем всё на время разработки; сузьте при необходимости)
+# CORS (управляется через env CORS_ALLOW_ORIGINS)
+origins = (
+    ["*"]
+    if settings.CORS_ALLOW_ORIGINS.strip() == "*"
+    else [o.strip() for o in settings.CORS_ALLOW_ORIGINS.split(",") if o.strip()]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

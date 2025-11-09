@@ -7,9 +7,12 @@ import requests
 
 ES = os.getenv("ELASTIC_URL", "http://localhost:9200").rstrip("/")
 INDEX = os.getenv("ES_INDEX", "movies")
+ES_WAIT_TIMEOUT = int(os.getenv("ES_WAIT_TIMEOUT", "60"))
+MAPPING_PATH = os.getenv("ES_MAPPING_PATH", "data/movies.mapping.json")
+BULK_PATH = os.getenv("ES_BULK_PATH", "data/movies.bulk.ndjson")
 
 
-def wait_es(url: str, timeout: int = 60):
+def wait_es(url: str, timeout: int = ES_WAIT_TIMEOUT):
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -22,8 +25,8 @@ def wait_es(url: str, timeout: int = 60):
 
 
 def main():
-    mapping_path = "data/movies.mapping.json"
-    bulk_path = "data/movies.bulk.ndjson"
+    mapping_path = MAPPING_PATH
+    bulk_path = BULK_PATH
 
     wait_es(ES)  # дождаться подъёма
 
