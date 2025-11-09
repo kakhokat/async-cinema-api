@@ -16,19 +16,25 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
+
 # dev-зависимости тоже внутрь
 COPY requirements-dev.txt ./requirements-dev.txt
-RUN pip install -r requirements-dev.txt
+RUN pip install -r requirements-dev.txt \
+    && pip install gunicorn==23.0.0
 
 # положим тесты и конфиги pytest в образ
 COPY tests ./tests
 COPY pytest.ini ./pytest.ini
 COPY pyproject.toml ./pyproject.toml
 
+# copy данные
+COPY scripts ./scripts
+COPY data ./data
 # copy source
 COPY src ./src
 COPY .env.example ./.env.example
+COPY gunicorn.conf.py ./gunicorn.conf.py
 
 EXPOSE 8000
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--app-dir", "src"]
+CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", \
+     "-c", "gunicorn.conf.py", "--chdir", "src"]

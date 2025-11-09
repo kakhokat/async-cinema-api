@@ -1,19 +1,32 @@
+# scripts/es_load.py
 import json
-import sys
+import os
 import time
 
 import requests
 
-ES = "http://localhost:9200"
-INDEX = "movies"
+ES = os.getenv("ELASTIC_URL", "http://localhost:9200").rstrip("/")
+INDEX = os.getenv("ES_INDEX", "movies")
+
+
+def wait_es(url: str, timeout: int = 60):
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            r = requests.get(url, timeout=2)
+            r.raise_for_status()
+            return
+        except requests.RequestException:
+            time.sleep(1)
+    raise RuntimeError(f"Elasticsearch not ready at {url}")
 
 
 def main():
-    # create index with mapping
     mapping_path = "data/movies.mapping.json"
     bulk_path = "data/movies.bulk.ndjson"
 
-    # delete old
+    wait_es(ES)  # дождаться подъёма
+
     requests.delete(f"{ES}/{INDEX}")
 
     with open(mapping_path, "r", encoding="utf-8") as f:
@@ -30,7 +43,6 @@ def main():
     r.raise_for_status()
     print("Bulk loaded")
 
-    # refresh
     requests.post(f"{ES}/{INDEX}/_refresh")
     print("Refreshed")
 

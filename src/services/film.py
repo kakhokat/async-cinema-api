@@ -8,12 +8,13 @@ from elasticsearch import AsyncElasticsearch, NotFoundError, TransportError
 from fastapi import Depends, HTTPException
 from redis.asyncio import Redis
 
+from core.settings import settings
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.film import Film, FilmListItem
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
-INDEX = "movies"
+INDEX = settings.ES_INDEX
 
 
 def _cache_key(prefix: str, params: Dict[str, Any]) -> str:

@@ -1,26 +1,64 @@
 # src/main.py
+from contextlib import asynccontextmanager
+from logging.config import dictConfig
+
 import redis.exceptions as redis_exc
-from elasticsearch import TransportError  # базовый для сетевых/HTTP ошибок клиента ES
-from elasticsearch import AsyncElasticsearch
+from elasticsearch import AsyncElasticsearch, TransportError
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, ORJSONResponse
 from redis.asyncio import Redis
+from starlette.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from api.v1 import films
-from core import config
+from core.logger import LOGGING
+from core.settings import settings
 from db import elastic, redis
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    redis.redis = Redis.from_url(
+        settings.REDIS_URL, encoding="utf-8", decode_responses=False
+    )
+    elastic.es = AsyncElasticsearch(hosts=[settings.ELASTIC_URL])
+    try:
+        yield
+    finally:
+        # shutdown
+        if redis.redis:
+            await redis.redis.aclose()
+        if elastic.es:
+            await elastic.es.close()
+
+
+# logging config
+dictConfig(LOGGING)
+
 app = FastAPI(
-    title=config.PROJECT_NAME,
+    title=settings.PROJECT_NAME,
     docs_url="/api/openapi",
     openapi_url="/api/openapi.json",
     default_response_class=ORJSONResponse,
+    lifespan=lifespan,
+)
+
+# доверяем X-Forwarded-* от nginx
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+# CORS (разрешаем всё на время разработки; сузьте при необходимости)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
 @app.exception_handler(TransportError)
 async def es_transport_error_handler(_: Request, exc: TransportError):
-    # Любая сетевая/HTTP ошибка Elaticsearch клиента -> 503
     return JSONResponse(
         status_code=503,
         content={"detail": "Elasticsearch is unavailable", "reason": str(exc)},
@@ -29,28 +67,10 @@ async def es_transport_error_handler(_: Request, exc: TransportError):
 
 @app.exception_handler(redis_exc.RedisError)
 async def redis_error_handler(_: Request, exc: redis_exc.RedisError):
-    # Любая ошибка Redis -> 503
     return JSONResponse(
         status_code=503,
         content={"detail": "Redis is unavailable", "reason": str(exc)},
     )
-
-
-@app.on_event("startup")
-async def startup():
-    # use URLs from env
-    redis.redis = Redis.from_url(
-        config.REDIS_URL, encoding="utf-8", decode_responses=False
-    )
-    elastic.es = AsyncElasticsearch(hosts=[config.ELASTIC_URL])
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    if redis.redis:
-        await redis.redis.aclose()
-    if elastic.es:
-        await elastic.es.close()
 
 
 # routers

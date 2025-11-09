@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from core.pagination import PaginationParams
 from models.film import FilmDetail, FilmListItem
 from services.film import FilmService, get_film_service
 
@@ -27,23 +28,18 @@ router = APIRouter()
     ),
 )
 async def films_list(
-    sort: Optional[str] = Query(
-        default="-imdb_rating",
-        description="Поле сортировки. Пример: `-imdb_rating` (по убыванию).",
-    ),
-    page_size: int = Query(default=50, ge=1, le=1000, description="Размер страницы."),
-    page_number: int = Query(default=1, ge=1, description="Номер страницы (с 1)."),
+    sort: Optional[str] = Query(default="-imdb_rating", description="..."),
     genre: Optional[str] = Query(
         default=None, description="UUID жанра для фильтрации."
     ),
+    pagination: PaginationParams = Depends(),
     film_service: FilmService = Depends(get_film_service),
 ) -> List[FilmListItem]:
-    """
-    Возвращает список фильмов.
-    Если ничего не найдено — 200 и пустой массив.
-    """
     return await film_service.list_films(
-        sort=sort, page_number=page_number, page_size=page_size, genre=genre
+        sort=sort,
+        page_number=pagination.page_number,
+        page_size=pagination.page_size,
+        genre=genre,
     )
 
 
@@ -56,7 +52,7 @@ async def films_list(
     summary="Search films",
     description=(
         "Полнотекстовый поиск по названию и описанию фильмов.\n\n"
-        "- Поле запроса: `query` (минимум 3 символа).\n"
+        "- Поле запроса: `query` (минимум 1 символ).\n"
         "- Сортировка результата по рейтингу `imdb_rating` по убыванию; "
         "значения `None` — в конце.\n"
         "- Пагинация: `page_number` и `page_size`."
@@ -64,16 +60,13 @@ async def films_list(
 )
 async def films_search(
     query: str = Query(min_length=1, description="Строка поиска (минимум 1 символ)."),
-    page_size: int = Query(default=50, ge=1, le=1000, description="Размер страницы."),
-    page_number: int = Query(default=1, ge=1, description="Номер страницы (с 1)."),
+    pagination: PaginationParams = Depends(),
     film_service: FilmService = Depends(get_film_service),
 ) -> List[FilmListItem]:
-    """
-    Возвращает список фильмов по поисковому запросу.
-    Если ничего не найдено — 200 и пустой массив.
-    """
     return await film_service.search_films(
-        query_str=query, page_number=page_number, page_size=page_size
+        query_str=query,
+        page_number=pagination.page_number,
+        page_size=pagination.page_size,
     )
 
 

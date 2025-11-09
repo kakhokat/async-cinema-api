@@ -1,0 +1,39 @@
+from fastapi import Query
+from pydantic import BaseModel, field_validator
+
+DEFAULT_PAGE_SIZE = 1
+MAX_PAGE_SIZE = 1000
+
+
+class PaginationParams(BaseModel):
+    page_number: int = DEFAULT_PAGE_SIZE
+    page_size: int = DEFAULT_PAGE_SIZE
+
+    @field_validator("page_number")
+    @classmethod
+    def validate_number(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("page_number must be >= 1")
+        return v
+
+    @field_validator("page_size")
+    @classmethod
+    def validate_size(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("page_size must be >= 1")
+        if v > MAX_PAGE_SIZE:
+            raise ValueError(f"page_size must be <= {MAX_PAGE_SIZE}")
+        return v
+
+    # Класс-как-зависимость: собираем из Query
+    def __init__(
+        self,
+        page_number: int = Query(default=1, ge=1, description="Номер страницы (с 1)"),
+        page_size: int = Query(
+            default=DEFAULT_PAGE_SIZE,
+            ge=1,
+            le=MAX_PAGE_SIZE,
+            description="Размер страницы",
+        ),
+    ):
+        super().__init__(page_number=page_number, page_size=page_size)
